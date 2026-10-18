@@ -40,11 +40,11 @@ class StudentExamController extends BaseController {
  }
  public function saveAnswer($attemptId) {
   $attempt=(new AttemptModel())->find((int)$attemptId);
-  if(!$attempt||(int)$attempt['user_id']!==(int)session()->get('user_id')||$attempt['status']!=='in_progress') return $this->response->setStatusCode(403)->setJSON(['ok'=>false]);
+  if(!$attempt||(int)$attempt['user_id']!==(int)session()->get('user_id')||$attempt['status']!=='in_progress') return $this->response->setStatusCode(403)->setJSON(['ok'=>false,'csrfHash'=>csrf_hash()]);
   $exam=(new ExamModel())->find($attempt['exam_id']);
-  if(strtotime($attempt['started_at'])+(int)$exam['duration_minutes']*60<=time()) { $this->finalize($attempt); return $this->response->setStatusCode(410)->setJSON(['ok'=>false,'message'=>'Waktu habis']); }
+  if(strtotime($attempt['started_at'])+(int)$exam['duration_minutes']*60<=time()) { $this->finalize($attempt); return $this->response->setStatusCode(410)->setJSON(['ok'=>false,'message'=>'Waktu habis','csrfHash'=>csrf_hash()]); }
   $qid=(int)$this->request->getPost('question_id'); $q=(new QuestionModel())->where('id',$qid)->where('exam_id',$exam['id'])->first();
-  if(!$q) return $this->response->setStatusCode(400)->setJSON(['ok'=>false]);
+  if(!$q) return $this->response->setStatusCode(400)->setJSON(['ok'=>false,'csrfHash'=>csrf_hash()]);
   $value=trim((string)$this->request->getPost('answer_text')); $data=['attempt_id'=>$attempt['id'],'question_id'=>$qid,'answer_text'=>$value,'selected_option_key'=>null,'is_correct'=>null,'score'=>null];
   if($q['question_type']==='mcq') {
    $aq=db_connect()->table('attempt_questions')->where('attempt_id',$attempt['id'])->where('question_id',$qid)->get()->getRowArray();
@@ -58,13 +58,13 @@ class StudentExamController extends BaseController {
   if($old) $m->update($old['id'],$data); else $m->insert($data);
   (new AttemptModel())->update($attempt['id'],['last_seen_at'=>date('Y-m-d H:i:s')]);
   (new ActivityLogModel())->insert(['user_id'=>session()->get('user_id'),'event_type'=>'answer_saved','details'=>'attempt='.$attempt['id'].';question='.$qid,'ip_address'=>$this->request->getIPAddress()]);
-  return $this->response->setJSON(['ok'=>true,'saved_at'=>date('H:i:s')]);
+  return $this->response->setJSON(['ok'=>true,'saved_at'=>date('H:i:s'),'csrfHash'=>csrf_hash()]);
  }
  public function heartbeat($attemptId) {
   $attempt=(new AttemptModel())->find((int)$attemptId);
-  if(!$attempt||(int)$attempt['user_id']!==(int)session()->get('user_id')||$attempt['status']!=='in_progress') return $this->response->setStatusCode(403)->setJSON(['ok'=>false]);
+  if(!$attempt||(int)$attempt['user_id']!==(int)session()->get('user_id')||$attempt['status']!=='in_progress') return $this->response->setStatusCode(403)->setJSON(['ok'=>false,'csrfHash'=>csrf_hash()]);
   (new AttemptModel())->update($attempt['id'],['last_seen_at'=>date('Y-m-d H:i:s')]);
-  return $this->response->setJSON(['ok'=>true]);
+  return $this->response->setJSON(['ok'=>true,'csrfHash'=>csrf_hash()]);
  }
  public function submit($attemptId) {
   $attempt=(new AttemptModel())->find((int)$attemptId);
